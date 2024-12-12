@@ -14,10 +14,13 @@
     "**/*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
+    "@react-three/fiber": "^8.17.10",
     "@tailwindcss/vite": "^4.0.0-beta.6",
+    "@types/three": "^0.170.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tailwindcss": "^4.0.0-beta.6"
+    "tailwindcss": "^4.0.0-beta.6",
+    "three": "^0.171.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
