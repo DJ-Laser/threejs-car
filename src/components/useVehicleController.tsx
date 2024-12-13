@@ -7,11 +7,11 @@ import {
   useAfterPhysicsStep,
   useRapier,
 } from "@react-three/rapier";
-import { RefObject, useCallback, useRef } from "react";
-import { Vector3 } from "three";
+import { MutableRefObject, RefObject, useCallback, useRef } from "react";
+import { Object3D, Vector3 } from "three";
 
 export interface SuspensionInfo {
-  travelDirection: Vector3;
+  travelDirection: Vector;
   travelDistance: number;
   restDistance: number;
   stiffness: number;
@@ -24,19 +24,33 @@ export interface WheelInfo {
   radius: number;
 }
 
+export function wheelsFrom(
+  wheels: Object3D[],
+  otherInfo: Omit<WheelInfo, "position">,
+): WheelInfo[] {
+  return wheels.map((wheel) => ({
+    position: wheel.position,
+    ...otherInfo,
+  }));
+}
+
 export interface VehicleController {
   controllerRef: RefObject<DynamicRayCastVehicleController>;
   chassisRef: (chassis: RapierRigidBody) => void;
   wheelPositions: Vector3[];
 }
 
-export function useVehicleController(wheels: WheelInfo[]): VehicleController {
+export function useVehicleController(
+  wheels: WheelInfo[],
+  chassisForwardRef?: MutableRefObject<RapierRigidBody | null>,
+): VehicleController {
   const { world } = useRapier();
   const controllerRef = useRef<DynamicRayCastVehicleController | null>(null);
   const wheelPositions = useRef<Vector3[] | null>(null);
 
   const chassisRef = useCallback(
     (chassis: RapierRigidBody | null) => {
+      if (chassisForwardRef) chassisForwardRef.current = chassis;
       if (chassis == null) {
         // Cleanup code
         if (controllerRef.current) {
@@ -64,7 +78,7 @@ export function useVehicleController(wheels: WheelInfo[]): VehicleController {
 
       controllerRef.current = controller;
     },
-    [world, wheels],
+    [world, wheels, chassisForwardRef],
   );
 
   useAfterPhysicsStep(() => {
@@ -72,13 +86,15 @@ export function useVehicleController(wheels: WheelInfo[]): VehicleController {
       const controller = controllerRef.current;
       controller?.updateVehicle(world.timestep);
       const positions = wheels.map((wheel, i) => {
-        const position = wheel.position.clone();
         // Add offset position to starting position to get real position
-        const suspensionTravel = controller.wheelSuspensionLength(i)!;
-        position.add(
-          wheel.suspension.travelDirection.clone().setLength(suspensionTravel),
-        );
+        const suspensionOffset = new Vector3();
+        suspensionOffset.copy(wheel.suspension.travelDirection);
 
+        const suspensionTravel = controller.wheelSuspensionLength(i)!;
+        suspensionOffset.setLength(suspensionTravel);
+
+        const position = wheel.position.clone();
+        position.add(suspensionOffset);
         return position;
       });
       wheelPositions.current = positions;
