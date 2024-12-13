@@ -1,16 +1,32 @@
 import { Canvas } from "@react-three/fiber";
+import { Physics, RigidBody } from "@react-three/rapier";
+import { Suspense } from "react";
+import { Car } from "./components/Car";
+
+function AppInternal() {
+  return (
+    <Canvas camera={{ position: [3, 3, 3] }}>
+      <Physics debug>
+        <ambientLight intensity={0.2} />
+        <directionalLight position={[0, 5, -5]} />
+        <Car />
+        <RigidBody type="fixed" position={[0, -2, 0]}>
+          <mesh>
+            <boxGeometry args={[100, 2, 100]} />
+            <meshStandardMaterial />
+          </mesh>
+        </RigidBody>
+      </Physics>
+    </Canvas>
+  );
+}
 
 function App() {
   return (
-    <div id="canvas-container">
-      <Canvas>
-        <ambientLight intensity={0.1} />
-        <directionalLight color="red" position={[0, 0, 5]} />
-        <mesh>
-          <boxGeometry args={[2, 2, 2]} />
-          <meshStandardMaterial />
-        </mesh>
-      </Canvas>
+    <div id="canvas-container" className="w-full h-full">
+      <Suspense fallback="Loading... ._.">
+        <AppInternal />
+      </Suspense>
     </div>
   );
 }
