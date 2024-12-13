@@ -8,12 +8,15 @@ export function Car() {
 
   return (
     <RigidBody
+      restitution={1}
+      position={[0, 10, 0]}
       ref={carRef}
-      onContactForce={({ target }) => {
-        target.rigidBody?.applyImpulse({ x: 0, y: 5, z: 0 }, true);
-      }}
+      colliders="hull"
     >
-      {chassis}
+      <primitive object={chassis} />
+      {wheels.map((wheel) => (
+        <primitive object={wheel} />
+      ))}
     </RigidBody>
   );
 }
