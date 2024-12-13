@@ -9,13 +9,13 @@ export function Car() {
   return (
     <RigidBody
       restitution={1}
-      position={[0, 10, 0]}
+      position={[0, 2, 0]}
       ref={carRef}
       colliders="hull"
     >
       <primitive object={chassis} />
-      {wheels.map((wheel) => (
-        <primitive object={wheel} />
+      {wheels.map((wheel, i) => (
+        <primitive key={i} object={wheel} />
       ))}
     </RigidBody>
   );
