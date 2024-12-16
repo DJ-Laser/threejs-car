@@ -7,7 +7,7 @@ import {
   useAfterPhysicsStep,
   useRapier,
 } from "@react-three/rapier";
-import { MutableRefObject, RefObject, useCallback, useRef } from "react";
+import { RefObject, useCallback, useRef } from "react";
 import { Object3D, Vector3 } from "three";
 
 export interface SuspensionInfo {
@@ -40,17 +40,13 @@ export interface VehicleController {
   getWheelRef: (index: number) => (wheel: Object3D) => void;
 }
 
-export function useVehicleController(
-  wheels: WheelInfo[],
-  chassisForwardRef?: MutableRefObject<RapierRigidBody | null>,
-): VehicleController {
+export function useVehicleController(wheels: WheelInfo[]): VehicleController {
   const { world } = useRapier();
   const controllerRef = useRef<DynamicRayCastVehicleController | null>(null);
   const wheelsRef: RefObject<(Object3D | null)[]> = useRef([]);
 
   const chassisRef = useCallback(
     (chassis: RapierRigidBody | null) => {
-      if (chassisForwardRef) chassisForwardRef.current = chassis;
       if (chassis == null) {
         // Cleanup code
         if (controllerRef.current) {
@@ -79,7 +75,7 @@ export function useVehicleController(
 
       controllerRef.current = controller;
     },
-    [world, wheels, chassisForwardRef],
+    [world, wheels],
   );
 
   useAfterPhysicsStep(() => {
