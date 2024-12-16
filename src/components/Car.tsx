@@ -16,7 +16,7 @@ export function Car() {
           stiffness: 24,
         },
         axleAxis: { x: 1, y: 0, z: 0 },
-        radius: 0.6,
+        radius: 0.6 / 2,
       }),
     [wheels],
   );
