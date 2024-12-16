@@ -15,7 +15,6 @@ export function useMeshPart(model: ColorMapModel, name: string): Mesh {
     part.geometry = (model.nodes[name] as Mesh).geometry;
     part.position.copy(model.nodes[name].position);
     part.material = model.colormap;
-    part.castShadow = true;
     return part;
   }, [model, name]);
 }
