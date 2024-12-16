@@ -37,7 +37,7 @@ export function wheelsFrom(
 export interface VehicleController {
   controllerRef: RefObject<DynamicRayCastVehicleController>;
   chassisRef: (chassis: RapierRigidBody) => void;
-  wheelPositions: Vector3[];
+  getWheelRef: (index: number) => (wheel: Object3D) => void;
 }
 
 export function useVehicleController(
@@ -46,7 +46,7 @@ export function useVehicleController(
 ): VehicleController {
   const { world } = useRapier();
   const controllerRef = useRef<DynamicRayCastVehicleController | null>(null);
-  const wheelPositions = useRef<Vector3[] | null>(null);
+  const wheelsRef: RefObject<(Object3D | null)[]> = useRef([]);
 
   const chassisRef = useCallback(
     (chassis: RapierRigidBody | null) => {
@@ -70,6 +70,7 @@ export function useVehicleController(
           wheel.radius,
         );
 
+        controller.setWheelSuspensionStiffness(i, wheel.suspension.stiffness);
         controller.setWheelMaxSuspensionTravel(
           i,
           wheel.suspension.travelDistance,
@@ -85,7 +86,7 @@ export function useVehicleController(
     if (controllerRef.current) {
       const controller = controllerRef.current;
       controller?.updateVehicle(world.timestep);
-      const positions = wheels.map((wheel, i) => {
+      wheels.forEach((wheel, i) => {
         // Add offset position to starting position to get real position
         const suspensionOffset = new Vector3();
         suspensionOffset.copy(wheel.suspension.travelDirection);
@@ -95,18 +96,16 @@ export function useVehicleController(
 
         const position = wheel.position.clone();
         position.add(suspensionOffset);
-        return position;
+
+        const wheelObject = wheelsRef.current![i];
+        wheelObject?.position.copy(position);
       });
-      wheelPositions.current = positions;
-    } else {
-      wheelPositions.current = null;
     }
   });
 
   return {
     chassisRef,
     controllerRef,
-    wheelPositions:
-      wheelPositions.current ?? wheels.map((wheel) => wheel.position),
+    getWheelRef: (index) => (wheel) => (wheelsRef.current![index] = wheel),
   };
 }
