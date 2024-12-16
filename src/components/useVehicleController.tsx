@@ -87,18 +87,22 @@ export function useVehicleController(
       const controller = controllerRef.current;
       controller?.updateVehicle(world.timestep);
       wheels.forEach((wheel, i) => {
+        const wheelObject = wheelsRef.current![i];
+        if (wheelObject == null) return;
+
+        const connectionPoint = controller.wheelChassisConnectionPointCs(i);
+        if (connectionPoint == null) return;
+        wheelObject.position.copy(connectionPoint);
+
         // Add offset position to starting position to get real position
         const suspensionOffset = new Vector3();
         suspensionOffset.copy(wheel.suspension.travelDirection);
 
+        // If we got the connection point, the wheel must be a valid index
         const suspensionTravel = controller.wheelSuspensionLength(i)!;
         suspensionOffset.setLength(suspensionTravel);
 
-        const position = wheel.position.clone();
-        position.add(suspensionOffset);
-
-        const wheelObject = wheelsRef.current![i];
-        wheelObject?.position.copy(position);
+        wheelObject.position.add(suspensionOffset);
       });
     }
   });
