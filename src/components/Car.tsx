@@ -1,66 +1,89 @@
 import { useFrame } from "@react-three/fiber";
-import { MeshCollider, RigidBody } from "@react-three/rapier";
-import { useMemo } from "react";
+import {
+  CylinderCollider,
+  RapierRigidBody,
+  RigidBody,
+  useRevoluteJoint,
+} from "@react-three/rapier";
+import { RefObject, useMemo, useRef } from "react";
+import { Object3D, Vector3 } from "three";
 import { usePoliceCar } from "./models/usePoliceCar";
 import { movementKeymap, useControls } from "./useControls";
-import { useVehicleController, wheelsFrom } from "./useVehicleController";
+
+interface WheelProps {
+  chassis: RefObject<RapierRigidBody>;
+  object: Object3D;
+}
+
+function Wheel({ object, chassis }: WheelProps) {
+  const wheelRef = useRef<RapierRigidBody>(null);
+  const axleRef = useRef<RapierRigidBody>(null);
+  const sideOffsetDir = useMemo(
+    () => (object.position.x < 0 ? -1 : 1),
+    [object],
+  );
+  const initialPos = useMemo<[number, number, number]>(() => {
+    const { x, y, z } = object.position;
+    const xOffset = sideOffsetDir * 0.1;
+
+    return [x + xOffset, y - 0.5, z];
+  }, [sideOffsetDir, object]);
+  useRevoluteJoint(chassis, wheelRef, [initialPos, [0, 0, 0], [1, 0, 0]]);
+
+  const wheelWidth = 0.3;
+  const wheelRadius = 0.28
+
+  return (
+    <RigidBody ref={wheelRef} restitution={0} colliders={false}>
+      <CylinderCollider
+        args={[wheelWidth / 2, wheelRadius]}
+        position={[(wheelWidth / 2) * sideOffsetDir, 0, 0]}
+        rotation={[0, 0, Math.PI / 2]}
+      />
+      <primitive object={object} position={[0, 0, 0]} />
+    </RigidBody>
+  );
+}
 
 export function Car() {
   const { chassis, wheels } = usePoliceCar();
-  const wheelInfo = useMemo(
-    () =>
-      wheelsFrom(wheels, {
-        suspension: {
-          travelDirection: { x: 0, y: -1, z: 0 },
-          travelDistance: 0.2,
-          restDistance: 0.2,
-          stiffness: 30,
-        },
-        axleAxis: { x: 1, y: 0, z: 0 },
-        radius: 0.6 / 2,
-      }),
-    [wheels],
-  );
-  const { chassisRef, getWheelRef, controllerRef } =
-    useVehicleController(wheelInfo);
+  const chassisRef = useRef<RapierRigidBody>(null);
 
   const controls = useControls(movementKeymap);
 
   useFrame(() => {
-    if (controllerRef.current) {
-      const controller = controllerRef.current;
+    if (!chassisRef.current) return;
+    const chassis = chassisRef.current;
 
-      let enginePower = controls.get("forward") ? -1 : 0;
-      enginePower += controls.get("backward") ? 1 : 0;
-      enginePower *= 7;
-      controller.setWheelEngineForce(2, enginePower);
-      controller.setWheelEngineForce(3, enginePower);
+    let enginePower = controls.get("forward") ? 1 : 0;
+    enginePower += controls.get("backward") ? -1 : 0;
+    enginePower *= 70;
 
-      // In radians
-      let turnAngle = controls.get("left") ? 1 : 0;
-      turnAngle += controls.get("right") ? -1 : 0;
-      turnAngle *= 0.57;
+    chassis.resetForces(false);
+    chassis.addForce(
+      new Vector3(0, 0, enginePower).applyQuaternion(chassis.rotation()),
+      true,
+    );
 
-      controller.setWheelSteering(0, turnAngle);
-      controller.setWheelSteering(1, turnAngle);
-    }
+    // In radians
+    let turnAngle = controls.get("left") ? 1 : 0;
+    turnAngle += controls.get("right") ? -1 : 0;
+    turnAngle *= 0.57;
   });
 
   return (
     <>
       <RigidBody
-        position={[0, 2, 0]}
+        position={[0, 1.5, 0]}
         ref={chassisRef}
-        colliders={false}
+        colliders="trimesh"
         canSleep={false}
       >
-        <MeshCollider type="trimesh">
-          <primitive object={chassis} />
-        </MeshCollider>
-        {wheels.map((wheel, i) => (
-          <primitive key={i} ref={getWheelRef(i)} object={wheel} />
-        ))}
+        <primitive object={chassis} />
       </RigidBody>
+      {wheels.map((wheel, i) => (
+        <Wheel key={i} object={wheel} chassis={chassisRef} />
+      ))}
     </>
   );
 }

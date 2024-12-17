@@ -28,7 +28,6 @@ export function useControls<Action>(keymap: Keymap<Action>): {
       if (!keymap.has(code)) return;
       // Set action based on keymap
       state.set(keymap.get(code), true);
-      console.log(state);
     };
 
     const handleKeyup = ({ code }: KeyboardEvent) => {
