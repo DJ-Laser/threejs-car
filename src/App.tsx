@@ -6,7 +6,7 @@ import { Car } from "./components/Car";
 
 function AppInternal() {
   return (
-    <Canvas camera={{ position: [3, 2, 3] }}>
+    <Canvas camera={{ position: [3, 1, 3] }}>
       <PointerLockControls makeDefault />
       <Physics debug>
         <ambientLight intensity={0.2} />

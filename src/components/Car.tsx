@@ -1,9 +1,12 @@
 import { useFrame } from "@react-three/fiber";
 import {
   CylinderCollider,
+  interactionGroups,
   RapierRigidBody,
   RigidBody,
+  usePrismaticJoint,
   useRevoluteJoint,
+  useSpringJoint,
 } from "@react-three/rapier";
 import { RefObject, useMemo, useRef } from "react";
 import { Object3D, Vector3 } from "three";
@@ -26,22 +29,62 @@ function Wheel({ object, chassis }: WheelProps) {
     const { x, y, z } = object.position;
     const xOffset = sideOffsetDir * 0.1;
 
-    return [x + xOffset, y - 0.5, z];
+    return [x + xOffset, y, z];
   }, [sideOffsetDir, object]);
-  useRevoluteJoint(chassis, wheelRef, [initialPos, [0, 0, 0], [1, 0, 0]]);
+
+  const initialWorldPos = useMemo(() => {
+    if (!chassis.current) return initialPos;
+    const pos = new Vector3();
+    pos.copy(chassis.current.translation());
+    pos.x += initialPos[0];
+    pos.y += initialPos[1];
+    pos.z += initialPos[2];
+    return pos;
+  }, [chassis, initialPos]);
+
+  useSpringJoint(chassis, axleRef, [initialPos, [0, 0, 0], 0.2, 50, 4]);
+  usePrismaticJoint(chassis, axleRef, [
+    initialPos,
+    [0, 0, 0],
+    [0, -1, 0],
+    [0.05, 1],
+  ]);
+  useRevoluteJoint(axleRef, wheelRef, [
+    [0, 0, 0],
+    [0, 0, 0],
+    [1, 0, 0],
+  ]);
 
   const wheelWidth = 0.3;
-  const wheelRadius = 0.28
+  const wheelRadius = 0.28;
 
   return (
-    <RigidBody ref={wheelRef} restitution={0} colliders={false}>
-      <CylinderCollider
-        args={[wheelWidth / 2, wheelRadius]}
-        position={[(wheelWidth / 2) * sideOffsetDir, 0, 0]}
-        rotation={[0, 0, Math.PI / 2]}
-      />
-      <primitive object={object} position={[0, 0, 0]} />
-    </RigidBody>
+    <>
+      <RigidBody
+        ref={axleRef}
+        collisionGroups={interactionGroups([])}
+        position={initialWorldPos}
+      >
+        <mesh>
+          <boxGeometry args={[0.3, 0.3, 0.3]} />
+          <meshStandardMaterial />
+        </mesh>
+      </RigidBody>
+      <RigidBody
+        ref={wheelRef}
+        friction={1.45}
+        restitution={0}
+        colliders={false}
+        position={initialWorldPos}
+      >
+        <CylinderCollider
+          args={[wheelWidth / 2, wheelRadius]}
+          position={[(wheelWidth / 2) * sideOffsetDir, 0, 0]}
+          rotation={[0, 0, Math.PI / 2]}
+        />
+        <primitive object={object} position={[0, 0, 0]} />
+      </RigidBody>
+    </>
   );
 }
 
@@ -68,7 +111,13 @@ export function Car() {
     // In radians
     let turnAngle = controls.get("left") ? 1 : 0;
     turnAngle += controls.get("right") ? -1 : 0;
-    turnAngle *= 0.57;
+    turnAngle *= 30;
+
+    chassis.resetTorques(false);
+    chassis.addTorque(
+      new Vector3(0, turnAngle, 0).applyQuaternion(chassis.rotation()),
+      true,
+    );
   });
 
   return (
