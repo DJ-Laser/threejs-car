@@ -1,5 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import {
+  CuboidCollider,
   CylinderCollider,
   interactionGroups,
   RapierRigidBody,
@@ -20,7 +21,7 @@ interface WheelProps {
 
 function Wheel({ object, chassis }: WheelProps) {
   const wheelRef = useRef<RapierRigidBody>(null);
-  const axleRef = useRef<RapierRigidBody>(null);
+  const suspensionRef = useRef<RapierRigidBody>(null);
   const sideOffsetDir = useMemo(
     () => (object.position.x < 0 ? -1 : 1),
     [object],
@@ -42,14 +43,14 @@ function Wheel({ object, chassis }: WheelProps) {
     return pos;
   }, [chassis, initialPos]);
 
-  useSpringJoint(chassis, axleRef, [initialPos, [0, 0, 0], 0.2, 50, 4]);
-  usePrismaticJoint(chassis, axleRef, [
+  useSpringJoint(chassis, suspensionRef, [initialPos, [0, 0, 0], 0.5, 50, 4]);
+  usePrismaticJoint(chassis, suspensionRef, [
     initialPos,
     [0, 0, 0],
     [0, -1, 0],
     [0.05, 1],
   ]);
-  useRevoluteJoint(axleRef, wheelRef, [
+  useRevoluteJoint(suspensionRef, wheelRef, [
     [0, 0, 0],
     [0, 0, 0],
     [1, 0, 0],
@@ -61,26 +62,19 @@ function Wheel({ object, chassis }: WheelProps) {
   return (
     <>
       <RigidBody
-        ref={axleRef}
+        ref={suspensionRef}
         collisionGroups={interactionGroups([])}
         position={initialWorldPos}
+        density={2}
       >
-        <mesh>
-          <boxGeometry args={[0.3, 0.3, 0.3]} />
-          <meshStandardMaterial />
-        </mesh>
+        <CuboidCollider args={[0.15, 0.15, 0.15]} />
       </RigidBody>
-      <RigidBody
-        ref={wheelRef}
-        friction={1.45}
-        restitution={0}
-        colliders={false}
-        position={initialWorldPos}
-      >
+      <RigidBody ref={wheelRef} colliders={false} position={initialWorldPos}>
         <CylinderCollider
           args={[wheelWidth / 2, wheelRadius]}
           position={[(wheelWidth / 2) * sideOffsetDir, 0, 0]}
           rotation={[0, 0, Math.PI / 2]}
+          friction={1.45}
         />
         <primitive object={object} position={[0, 0, 0]} />
       </RigidBody>
