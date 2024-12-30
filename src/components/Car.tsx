@@ -32,6 +32,7 @@ interface WheelRef {
   setSteeringAngle(angle: number): void;
   setWheelSpeed(speed: number): void;
   setSteerEnabled(steerEnabled: boolean): void;
+  reset(): void;
 }
 
 const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
@@ -53,7 +54,7 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
   }, [sideOffsetDir, object]);
 
   const initialWorldPos = useMemo(() => {
-    if (!chassisRef.current) return initialPos;
+    if (!chassisRef.current) return new Vector3(...initialPos);
     const pos = new Vector3();
     pos.copy(chassisRef.current.translation());
     pos.x += initialPos[0];
@@ -124,6 +125,16 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
       },
 
       setSteerEnabled,
+      reset() {
+        for (const ref of [suspensionRef, axleRef, wheelRef]) {
+          if (!ref.current) return;
+          const body = ref.current;
+          body.setTranslation(new Vector3(...initialPos), true);
+          body.setRotation({ x: 1, y: 0, z: 0, w: 0 }, true);
+          body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+          body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        }
+      },
     };
   }, [rotationJointRef, setSteerEnabled, steeringJointRef]);
 
@@ -182,19 +193,42 @@ export function Car({ lightRef }: { lightRef: RefObject<DirectionalLight> }) {
       0,
       { x: 0, y: -1, z: 0 },
       { x: 0, y: 0, z: 0 },
-      { x: 0, y: 0, z: 0, w: 0 },
+      { x: 1, y: 0, z: 0, w: 0 },
       false,
     );
   }, []);
+
+  const resetting = useRef(false);
 
   useFrame((state, delta) => {
     if (!chassisRef.current) return;
     const chassis = chassisRef.current;
     const camera = state.camera;
+    const reset = () => {
+      if (resetting.current) return;
+      resetting.current = true;
+
+      if (!wheelRefs.current) return;
+      for (const ref of wheelRefs.current) {
+        ref?.reset();
+      }
+
+      setTimeout(() => (resetting.current = false), 1000);
+    };
+
+    if (resetting.current) {
+      chassis.setTranslation({ x: 0, y: 1, z: 0 }, true);
+      chassis.setRotation({ x: 0, y: 1, z: 0, w: 0 }, true);
+      chassis.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      chassis.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    } else if (chassis.translation().y < -5) {
+      reset();
+    }
 
     const offset = new Vector3(0, 3, -5);
     offset.applyQuaternion(chassis.rotation());
     offset.add(chassis.translation());
+    if (offset.y < 0.1) offset.y = 0.1;
 
     const lookAt = new Vector3(0, 1, 0);
     lookAt.applyQuaternion(chassis.rotation());
@@ -211,6 +245,10 @@ export function Car({ lightRef }: { lightRef: RefObject<DirectionalLight> }) {
       lightRef.current.position.copy(new Vector3(-5, 5, 0));
       lightRef.current.position.add(chassis.translation());
       lightRef.current.target = chassisModel;
+    }
+
+    if (controls.get("reset")) {
+      reset();
     }
 
     let enginePower = controls.get("forward") ? 1 : 0;

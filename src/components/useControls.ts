@@ -2,7 +2,12 @@ import { Map as ImmutableMap } from "immutable";
 import { useEffect, useRef } from "react";
 
 export type Keymap<Action> = ImmutableMap<string, Action>;
-export type MovementAction = "forward" | "backward" | "left" | "right";
+export type MovementAction =
+  | "forward"
+  | "backward"
+  | "left"
+  | "right"
+  | "reset";
 
 export const movementKeymap: Keymap<MovementAction> = ImmutableMap([
   ["ArrowUp", "forward"],
@@ -13,6 +18,7 @@ export const movementKeymap: Keymap<MovementAction> = ImmutableMap([
   ["KeyS", "backward"],
   ["KeyA", "left"],
   ["KeyD", "right"],
+  ["KeyR", "reset"],
 ] as const);
 
 export function useControls<Action>(keymap: Keymap<Action>): {
