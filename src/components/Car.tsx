@@ -18,7 +18,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { Object3D, Vector3 } from "three";
+import { DirectionalLight, Object3D, Vector3 } from "three";
 import { CAR_GROUP, STATIC_GROUP, WHEEL_GROUP } from "../collisionGroups";
 import { usePoliceCar } from "./models/usePoliceCar";
 import { movementKeymap, useControls } from "./useControls";
@@ -62,15 +62,19 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
     return pos;
   }, [chassisRef, initialPos]);
 
+  const dummyCollidersPos: [number, number, number] = [...initialPos];
+  const dummyColliderOffset = 0.2;
+  dummyCollidersPos[1] += dummyColliderOffset;
+
   useSpringJoint(chassisRef, suspensionRef, [
-    initialPos,
+    dummyCollidersPos,
     [0, 0, 0],
-    0.1,
-    300,
-    4,
+    0.2,
+    350,
+    8,
   ]);
   usePrismaticJoint(chassisRef, suspensionRef, [
-    initialPos,
+    dummyCollidersPos,
     [0, 0, 0],
     [0, -1, 0],
     [0.05, 1],
@@ -83,7 +87,7 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
   ]);
 
   const rotationJointRef = useRevoluteJoint(axleRef, wheelRef, [
-    [0, 0, 0],
+    [0, -dummyColliderOffset, 0],
     [0, 0, 0],
     [1, 0, 0],
   ]);
@@ -123,8 +127,8 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
     };
   }, [rotationJointRef, setSteerEnabled, steeringJointRef]);
 
-  const wheelWidth = 0.3;
-  const wheelRadius = 0.28;
+  const wheelWidth = 0.36;
+  const wheelRadius = 0.336;
 
   return (
     <>
@@ -134,26 +138,27 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
         position={initialWorldPos}
         density={1}
       >
-        <CuboidCollider args={[0.25, 0.25, 0.25]} />
+        <CuboidCollider args={[0.25, 0.2, 0.25]} />
       </RigidBody>
       <RigidBody
         ref={axleRef}
         collisionGroups={interactionGroups([])}
-        position={[0, 0, 0]}
+        position={initialWorldPos}
       >
-        <CuboidCollider args={[0.25, 0.25, 0.25]} />
+        <CuboidCollider args={[0.25, 0.2, 0.25]} />
       </RigidBody>
       <RigidBody
         ref={wheelRef}
         collisionGroups={interactionGroups(WHEEL_GROUP, STATIC_GROUP)}
         colliders={false}
         position={initialWorldPos}
+        ccd={true}
       >
         <CylinderCollider
           args={[wheelWidth / 2, wheelRadius]}
           position={[(wheelWidth / 2) * sideOffsetDir, 0, 0]}
           rotation={[0, 0, Math.PI / 2]}
-          friction={1.45}
+          friction={1.2}
         />
         <primitive object={object} position={[0, 0, 0]} />
       </RigidBody>
@@ -161,15 +166,53 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
   );
 });
 
-export function Car() {
-  const { chassis, wheels } = usePoliceCar();
+export function Car({ lightRef }: { lightRef: RefObject<DirectionalLight> }) {
+  const { chassis: chassisModel, wheels } = usePoliceCar(1.2);
   const chassisRef = useRef<RapierRigidBody>(null);
   const wheelRefs = useRef<(WheelRef | null)[]>([]);
 
   const controls = useControls(movementKeymap);
 
-  useFrame(() => {
+  const currentCameraOffset = useRef(new Vector3());
+  const currentCameraLookAt = useRef(new Vector3());
+
+  useEffect(() => {
+    const chassis = chassisRef.current!;
+    chassis.setAdditionalMassProperties(
+      0,
+      { x: 0, y: -1, z: 0 },
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 0, w: 0 },
+      false,
+    );
+  }, []);
+
+  useFrame((state, delta) => {
     if (!chassisRef.current) return;
+    const chassis = chassisRef.current;
+    const camera = state.camera;
+
+    const offset = new Vector3(0, 3, -5);
+    offset.applyQuaternion(chassis.rotation());
+    offset.add(chassis.translation());
+
+    const lookAt = new Vector3(0, 1, 0);
+    lookAt.applyQuaternion(chassis.rotation());
+    lookAt.add(chassis.translation());
+
+    const t = 1.0 - Math.pow(0.01, delta);
+    currentCameraOffset.current.lerp(offset, t);
+    currentCameraLookAt.current.lerp(lookAt, t);
+
+    camera.position.copy(currentCameraOffset.current);
+    camera.lookAt(currentCameraLookAt.current);
+
+    if (lightRef.current) {
+      lightRef.current.position.copy(new Vector3(-5, 5, 0));
+      lightRef.current.position.add(chassis.translation());
+      lightRef.current.target = chassisModel;
+    }
+
     let enginePower = controls.get("forward") ? 1 : 0;
     enginePower += controls.get("backward") ? -1 : 0;
     enginePower *= 700;
@@ -181,7 +224,7 @@ export function Car() {
     wheelRefs.current.forEach((wheel, i) => {
       if (!wheel) return;
       if (i < 2) {
-        wheel.setSteeringAngle(turnAngle / 2);
+        wheel.setSteeringAngle(turnAngle * 0.45);
         wheel.setSteerEnabled(true);
       } else {
         wheel.setSteeringAngle(0);
@@ -197,9 +240,9 @@ export function Car() {
         colliders="trimesh"
         collisionGroups={interactionGroups(CAR_GROUP)}
         canSleep={false}
-        position={[0, 1.5, 0]}
+        position={[0, 0.1, 0]}
       >
-        <primitive object={chassis} />
+        <primitive object={chassisModel} />
       </RigidBody>
       {wheels.map((wheel, i) => (
         <Wheel
