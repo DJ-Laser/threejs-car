@@ -36,8 +36,26 @@ function App() {
       />
       <Car lightRef={lightRef} />
       <RigidBody type="fixed" position={[0, -2, 0]}>
-        <mesh receiveShadow>
-          <boxGeometry args={[100, 2, 100]} />
+        <mesh position={[75, 0, 0]} receiveShadow>
+          <boxGeometry args={[300, 2, 150]} />
+          <meshStandardMaterial />
+        </mesh>
+        <mesh
+          position={[20, 1, 0]}
+          rotation={[0, 0, 0.35]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[10, 2, 20]} />
+          <meshStandardMaterial />
+        </mesh>
+        <mesh
+          position={[37, 1, 0]}
+          rotation={[0, 0, -0.35]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[10, 2, 20]} />
           <meshStandardMaterial />
         </mesh>
       </RigidBody>
