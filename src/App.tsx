@@ -3,6 +3,7 @@ import { Physics, RigidBody } from "@react-three/rapier";
 import { PropsWithChildren, Suspense, useRef } from "react";
 import { Car } from "./components/Car";
 import { Cones } from "./components/Cones";
+import { Ramp } from "./components/Ramp";
 
 function AppWrapper({ children }: PropsWithChildren) {
   return (
@@ -41,25 +42,8 @@ function App() {
           <boxGeometry args={[300, 2, 150]} />
           <meshStandardMaterial />
         </mesh>
-        <mesh
-          position={[20, 1, 0]}
-          rotation={[0, 0, 0.35]}
-          castShadow
-          receiveShadow
-        >
-          <boxGeometry args={[10, 2, 20]} />
-          <meshStandardMaterial />
-        </mesh>
-        <mesh
-          position={[37, 1, 0]}
-          rotation={[0, 0, -0.35]}
-          castShadow
-          receiveShadow
-        >
-          <boxGeometry args={[10, 2, 20]} />
-          <meshStandardMaterial />
-        </mesh>
       </RigidBody>
+      <Ramp position={[28.5, -2, 0]} />
       <Cones />
     </AppWrapper>
   );
