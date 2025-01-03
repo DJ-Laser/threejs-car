@@ -136,7 +136,7 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
         }
       },
     };
-  }, [rotationJointRef, setSteerEnabled, steeringJointRef]);
+  }, [initialPos, rotationJointRef, setSteerEnabled, steeringJointRef]);
 
   const wheelWidth = 0.36;
   const wheelRadius = 0.336;
