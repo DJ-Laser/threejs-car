@@ -2,6 +2,7 @@ import { Canvas } from "@react-three/fiber";
 import { Physics, RigidBody } from "@react-three/rapier";
 import { PropsWithChildren, Suspense, useRef } from "react";
 import { Car } from "./components/Car";
+import { Cones } from "./components/Cones";
 
 function AppWrapper({ children }: PropsWithChildren) {
   return (
@@ -59,6 +60,7 @@ function App() {
           <meshStandardMaterial />
         </mesh>
       </RigidBody>
+      <Cones />
     </AppWrapper>
   );
 }

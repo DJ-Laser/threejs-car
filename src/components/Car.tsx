@@ -218,7 +218,7 @@ export function Car({ lightRef }: { lightRef: RefObject<DirectionalLight> }) {
 
     if (resetting.current) {
       chassis.setTranslation({ x: 0, y: 1, z: 0 }, true);
-      chassis.setRotation({ x: 0, y: 1, z: 0, w: 0 }, true);
+      chassis.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
       chassis.setLinvel({ x: 0, y: 0, z: 0 }, true);
       chassis.setAngvel({ x: 0, y: 0, z: 0 }, true);
     } else if (chassis.translation().y < -5) {
