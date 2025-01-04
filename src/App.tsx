@@ -43,7 +43,9 @@ function App() {
           <meshStandardMaterial />
         </mesh>
       </RigidBody>
-      <Ramp position={[28.5, -2, 0]} />
+      <Ramp position={[30, -2, 0]} />
+      <Ramp position={[70, -2, 0]} />
+      <Ramp position={[110, -2, 0]} />
       <Cones />
     </AppWrapper>
   );

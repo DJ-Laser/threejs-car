@@ -10,7 +10,7 @@ function TransformCone({ args }: TransformConeProps) {
   const [offset, origin, rotation] = args;
 
   const translation = useMemo(() => {
-    let translation = new Vector3(...offset);
+    const translation = new Vector3(...offset);
     translation.applyEuler(rotation);
 
     translation.x += origin[0];
@@ -18,9 +18,25 @@ function TransformCone({ args }: TransformConeProps) {
     translation.z += origin[2];
 
     return translation;
-  }, []);
+  }, [offset, origin, rotation]);
 
   return <Cone position={translation} rotation={rotation} />;
+}
+
+function ConeLine({
+  num = 5,
+  dist = 1.5,
+  position: pos,
+  rotation: rot,
+}: ConeProps) {
+  return (
+    <>
+      ...
+      {Array.from({ length: num }, (_, idx) => (
+        <TransformCone key={idx} args={[[0, 0, idx * dist], pos, rot]} />
+      ))}
+    </>
+  );
 }
 
 interface ConeProps {
@@ -44,19 +60,18 @@ function ConeTriangle({
     for (let i = 0; i < layers; i++) {
       for (let j = 0; j <= i; j++) {
         const xOffset = j * dist - (i * dist) / 2;
-        console.log(`Cone: ${i}, ${j}`);
         cones.push([xOffset, 0, i * dist]);
       }
     }
 
     return cones;
-  }, [dist, layers, position, rotation]);
+  }, [dist, layers]);
 
   return (
     <>
       ...
-      {cones.map((offset) => (
-        <TransformCone args={[offset, position, rotation]} />
+      {cones.map((offset, i) => (
+        <TransformCone key={i} args={[offset, position, rotation]} />
       ))}
     </>
   );
@@ -64,10 +79,18 @@ function ConeTriangle({
 
 export function Cones() {
   return (
-    <ConeTriangle
-      num={6}
-      position={[0, 0, 15]}
-      rotation={new Euler(0, 0, 0, "XYZ")}
-    />
+    <>
+      <ConeTriangle
+        num={7}
+        dist={1.5}
+        position={[0, 0, 23]}
+        rotation={new Euler(0, 0, 0, "XYZ")}
+      />
+      <ConeLine
+        num={6}
+        position={[5, 0, 10]}
+        rotation={new Euler(0, 0, 0, "XYZ")}
+      />
+    </>
   );
 }
