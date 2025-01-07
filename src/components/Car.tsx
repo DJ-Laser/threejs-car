@@ -1,3 +1,4 @@
+import { QueryFilterFlags, Ray, Vector } from "@dimforge/rapier3d-compat";
 import { useFrame } from "@react-three/fiber";
 import {
   CuboidCollider,
@@ -5,6 +6,7 @@ import {
   interactionGroups,
   RapierRigidBody,
   RigidBody,
+  useBeforePhysicsStep,
   usePrismaticJoint,
   useRevoluteJoint,
   useSpringJoint,
@@ -32,7 +34,7 @@ interface WheelRef {
   setSteeringAngle(angle: number): void;
   setWheelSpeed(speed: number): void;
   setSteerEnabled(steerEnabled: boolean): void;
-  reset(): void;
+  reset(resetPos: Vector): void;
 }
 
 const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
@@ -72,7 +74,7 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
     [0, 0, 0],
     0.2,
     350,
-    8,
+    6,
   ]);
   usePrismaticJoint(chassisRef, suspensionRef, [
     dummyCollidersPos,
@@ -125,11 +127,11 @@ const Wheel = forwardRef<WheelRef, WheelProps>(function Wheel(
       },
 
       setSteerEnabled,
-      reset() {
+      reset(resetPos: Vector) {
         for (const ref of [suspensionRef, axleRef, wheelRef]) {
           if (!ref.current) return;
           const body = ref.current;
-          body.setTranslation(new Vector3(...initialPos), true);
+          body.setTranslation(new Vector3(...initialPos).add(resetPos), true);
           body.setRotation({ x: 1, y: 0, z: 0, w: 0 }, true);
           body.setLinvel({ x: 0, y: 0, z: 0 }, true);
           body.setAngvel({ x: 0, y: 0, z: 0 }, true);
@@ -184,9 +186,6 @@ export function Car({ lightRef }: { lightRef: RefObject<DirectionalLight> }) {
 
   const controls = useControls(movementKeymap);
 
-  const currentCameraOffset = useRef(new Vector3());
-  const currentCameraLookAt = useRef(new Vector3());
-
   useEffect(() => {
     const chassis = chassisRef.current!;
     chassis.setAdditionalMassProperties(
@@ -198,53 +197,55 @@ export function Car({ lightRef }: { lightRef: RefObject<DirectionalLight> }) {
     );
   }, []);
 
-  const resetting = useRef(false);
+  const resetPosRef = useRef<Vector | null>(null);
 
-  useFrame((state, delta) => {
+  useBeforePhysicsStep((world) => {
     if (!chassisRef.current) return;
     const chassis = chassisRef.current;
-    const camera = state.camera;
     const reset = () => {
-      if (resetting.current) return;
-      resetting.current = true;
+      if (resetPosRef.current) return;
+      const rayOrigin = new Vector3(0, 10, 0).add(chassis.translation());
+      const ray = new Ray(rayOrigin, {
+        x: 0,
+        y: -1,
+        z: 0,
+      });
+
+      const hit = world.castRay(
+        ray,
+        25,
+        true,
+        QueryFilterFlags.EXCLUDE_SENSORS,
+        interactionGroups(STATIC_GROUP, STATIC_GROUP),
+      );
+
+      if (hit) {
+        const hitPoint = rayOrigin.clone();
+        hitPoint.y -= hit.timeOfImpact;
+        hitPoint.y += 2;
+
+        resetPosRef.current = hitPoint;
+      } else {
+        resetPosRef.current = { x: 0, y: 1, z: 0 };
+      }
 
       if (!wheelRefs.current) return;
       for (const ref of wheelRefs.current) {
-        ref?.reset();
+        ref?.reset(resetPosRef.current);
       }
 
-      setTimeout(() => (resetting.current = false), 1000);
+      setTimeout(() => (resetPosRef.current = null), 1000);
     };
 
-    if (resetting.current) {
-      chassis.setTranslation({ x: 0, y: 1, z: 0 }, true);
+    if (resetPosRef.current) {
+      const resetPos = resetPosRef.current;
+
+      chassis.setTranslation(resetPos, true);
       chassis.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
       chassis.setLinvel({ x: 0, y: 0, z: 0 }, true);
       chassis.setAngvel({ x: 0, y: 0, z: 0 }, true);
     } else if (chassis.translation().y < -5) {
       reset();
-    }
-
-    const offset = new Vector3(0, 3, -5);
-    offset.applyQuaternion(chassis.rotation());
-    offset.add(chassis.translation());
-    if (offset.y < 0.1) offset.y = 0.1;
-
-    const lookAt = new Vector3(0, 1, 0);
-    lookAt.applyQuaternion(chassis.rotation());
-    lookAt.add(chassis.translation());
-
-    const t = 1.0 - Math.pow(0.01, delta);
-    currentCameraOffset.current.lerp(offset, t);
-    currentCameraLookAt.current.lerp(lookAt, t);
-
-    camera.position.copy(currentCameraOffset.current);
-    camera.lookAt(currentCameraLookAt.current);
-
-    if (lightRef.current) {
-      lightRef.current.position.copy(new Vector3(-5, 5, 0));
-      lightRef.current.position.add(chassis.translation());
-      lightRef.current.target = chassisModel;
     }
 
     if (controls.get("reset")) {
@@ -269,6 +270,37 @@ export function Car({ lightRef }: { lightRef: RefObject<DirectionalLight> }) {
         wheel.setWheelSpeed(enginePower);
       }
     });
+  });
+
+  const currentCameraOffset = useRef(new Vector3());
+  const currentCameraLookAt = useRef(new Vector3());
+
+  useFrame((state, delta) => {
+    if (!chassisRef.current) return;
+    const chassis = chassisRef.current;
+    const camera = state.camera;
+
+    const offset = new Vector3(0, 3, -5);
+    offset.applyQuaternion(chassis.rotation());
+    offset.add(chassis.translation());
+    if (offset.y < 0.1) offset.y = 0.1;
+
+    const lookAt = new Vector3(0, 1, 0);
+    lookAt.applyQuaternion(chassis.rotation());
+    lookAt.add(chassis.translation());
+
+    const t = 1.0 - Math.pow(0.01, delta);
+    currentCameraOffset.current.lerp(offset, t);
+    currentCameraLookAt.current.lerp(lookAt, t);
+
+    camera.position.copy(currentCameraOffset.current);
+    camera.lookAt(currentCameraLookAt.current);
+
+    if (lightRef.current) {
+      lightRef.current.position.copy(new Vector3(-5, 5, 0));
+      lightRef.current.position.add(chassis.translation());
+      lightRef.current.target = chassisModel;
+    }
   });
 
   return (
