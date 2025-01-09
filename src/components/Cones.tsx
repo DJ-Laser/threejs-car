@@ -86,6 +86,12 @@ export function Cones() {
         position={[0, 0, 23]}
         rotation={new Euler(0, 0, 0, "XYZ")}
       />
+      <ConeTriangle
+        num={7}
+        dist={1.5}
+        position={[15, 0, -23]}
+        rotation={new Euler(0, Math.PI / 2, 0, "XYZ")}
+      />
       <ConeLine
         num={6}
         position={[5, 0, 10]}
