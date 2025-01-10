@@ -5,6 +5,7 @@ import { STATIC_GROUP } from "./collisionGroups";
 import { Car } from "./components/Car";
 import { Cones } from "./components/Cones";
 import { Ramp } from "./components/Ramp";
+import { Ui } from "./components/Ui";
 
 function AppWrapper({ children }: PropsWithChildren) {
   return (
@@ -26,35 +27,38 @@ function App() {
   const shadow_map_size = 2048;
 
   return (
-    <AppWrapper>
-      <ambientLight intensity={0.2} />
-      <directionalLight
-        position={[-5, 5, 0]}
-        shadow-camera-top={shadow_size}
-        shadow-camera-right={shadow_size}
-        shadow-camera-bottom={-shadow_size}
-        shadow-camera-left={-shadow_size}
-        shadow-mapSize-height={shadow_map_size}
-        shadow-mapSize-width={shadow_map_size}
-        castShadow
-        ref={lightRef}
-      />
-      <Car lightRef={lightRef} />
-      <RigidBody
-        collisionGroups={interactionGroups(STATIC_GROUP)}
-        type="fixed"
-        position={[0, -2, 0]}
-      >
-        <mesh position={[75, 0, 0]} receiveShadow>
-          <boxGeometry args={[300, 2, 150]} />
-          <meshStandardMaterial />
-        </mesh>
-      </RigidBody>
-      <Ramp position={[30, -2, 0]} />
-      <Ramp position={[70, -2, 0]} />
-      <Ramp position={[110, -2, 0]} />
-      <Cones />
-    </AppWrapper>
+    <>
+      <Ui />
+      <AppWrapper>
+        <ambientLight intensity={0.2} />
+        <directionalLight
+          position={[-5, 5, 0]}
+          shadow-camera-top={shadow_size}
+          shadow-camera-right={shadow_size}
+          shadow-camera-bottom={-shadow_size}
+          shadow-camera-left={-shadow_size}
+          shadow-mapSize-height={shadow_map_size}
+          shadow-mapSize-width={shadow_map_size}
+          castShadow
+          ref={lightRef}
+        />
+        <Car lightRef={lightRef} />
+        <RigidBody
+          collisionGroups={interactionGroups(STATIC_GROUP)}
+          type="fixed"
+          position={[0, -2, 0]}
+        >
+          <mesh position={[75, 0, 0]} receiveShadow>
+            <boxGeometry args={[300, 2, 150]} />
+            <meshStandardMaterial />
+          </mesh>
+        </RigidBody>
+        <Ramp position={[30, -2, 0]} />
+        <Ramp position={[70, -2, 0]} />
+        <Ramp position={[110, -2, 0]} />
+        <Cones />
+      </AppWrapper>
+    </>
   );
 }
 
