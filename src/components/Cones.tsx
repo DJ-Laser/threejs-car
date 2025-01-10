@@ -52,8 +52,6 @@ function ConeTriangle({
   position,
   rotation,
 }: ConeProps) {
-  console.log(`Generating ${layers} layers`);
-
   const cones = useMemo(() => {
     const cones: [number, number, number][] = [];
 
