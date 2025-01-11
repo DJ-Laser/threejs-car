@@ -1,6 +1,7 @@
 import { Canvas } from "@react-three/fiber";
 import { interactionGroups, Physics, RigidBody } from "@react-three/rapier";
 import { PropsWithChildren, Suspense, useRef } from "react";
+import { Color } from "three";
 import { STATIC_GROUP } from "./collisionGroups";
 import { Car } from "./components/Car";
 import { Cones } from "./components/Cones";
@@ -12,9 +13,7 @@ function AppWrapper({ children }: PropsWithChildren) {
     <div id="canvas-container" className="w-full h-full">
       <Suspense fallback="Loading... ._.">
         <Canvas shadows="soft">
-          <Physics debug numAdditionalFrictionIterations={6}>
-            {children}
-          </Physics>
+          <Physics numAdditionalFrictionIterations={6}>{children}</Physics>
         </Canvas>
       </Suspense>
     </div>
@@ -50,7 +49,7 @@ function App() {
         >
           <mesh position={[75, 0, 0]} receiveShadow>
             <boxGeometry args={[300, 2, 150]} />
-            <meshStandardMaterial />
+            <meshStandardMaterial color={new Color(0.3, 0.3, 0.3)} />
           </mesh>
         </RigidBody>
         <Ramp position={[30, -2, 0]} />
