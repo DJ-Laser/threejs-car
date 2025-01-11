@@ -91,8 +91,18 @@ export function Cones() {
         rotation={new Euler(0, Math.PI / 2, 0, "XYZ")}
       />
       <ConeLine
-        num={6}
-        position={[5, 0, 10]}
+        num={9}
+        position={[50, 0, -6.25]}
+        rotation={new Euler(0, 0, 0, "XYZ")}
+      />
+      <ConeLine
+        num={9}
+        position={[90, 0, -6.25]}
+        rotation={new Euler(0, 0, 0, "XYZ")}
+      />
+      <ConeLine
+        num={9}
+        position={[130, 0, -6.25]}
         rotation={new Euler(0, 0, 0, "XYZ")}
       />
     </>
